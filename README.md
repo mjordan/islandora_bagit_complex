@@ -4,6 +4,8 @@ Extends [Islandora BagIt](https://github.com/Islandora/islandora_bagit) to produ
 
 This module does not apply to collections, since the Islandora BagIt module already handles them.
 
+> Note: Because this module can result in very long execution times when creating Bags, you should avoid creating Bags from within Drupal's user interface. Creating a Bag for a newspaper, for example, will almost certainly time out if initiated from within the newspaper object's Manage tab. If you enable this module, only create Bags using the Drush command.
+
 ## Requirements
 
 * [Islandora BagIt](https://github.com/Islandora/islandora_bagit)
