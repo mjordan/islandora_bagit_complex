@@ -1,0 +1,78 @@
+<?php
+
+/**
+ * Implements hook_islandora_bagit_post_create().
+ *
+ * @param string $pid
+ *   The PID of the Islandora object that the Bag was just created for.
+ *
+ * @param string $bag_path
+ *  The path to the Bag, relative to the Drupal installation directory.
+ */
+function islandora_bagit_complex_islandora_bagit_post_create($pid, $bag_path) {
+  // module_load_include('module', 'islandora_bagit');
+  // We keep a static cache of PIDs for Bags created
+  // to avoid an infinite loop.
+  // static $bags_created = array();
+
+  $parent_object = islandora_object_load($pid);
+  $parent_object_models = $parent_object->models;
+
+  // For compound objects.
+  if (module_exists('islandora_compound_object') && in_array('islandora:compoundCModel', $parent_object_models)) {
+    $child_pids = islandora_compound_object_get_parts($parent_object, FALSE);
+    foreach ($child_pids as $child_pid) {
+      islandora_bagit_complex_create_bag($child_pid);
+    }
+  }
+
+  // For books.
+  if (module_exists('islandora_paged_content') && in_array('islandora:bookCModel', $parent_object_models)) {
+    module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
+    $pages = islandora_paged_content_get_pages($parent_object);
+    $child_pids = array_keys($pages);
+    foreach ($child_pids as $child_pid) {
+      islandora_bagit_complex_create_bag($child_pid);
+    }
+  }
+
+  // For newspapers.
+  if (module_exists('islandora_newspaper') && in_array('islandora:newspaperCModel', $parent_object_models)) {
+    module_load_include('inc', 'islandora_newspaper', 'includes/utilities');
+    module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
+    $issues = islandora_newspaper_get_issues($parent_object);
+    $issue_pids = array_keys($issues);
+    foreach ($issue_pids as $issue_pid) {
+      islandora_bagit_complex_create_bag($issue_pid);
+      if (module_exists('islandora_paged_content')) {
+        $issue_object = islandora_object_load($issue_pid);
+        $pages = islandora_paged_content_get_pages($issue_object);
+        foreach ($pages as $page) {
+          islandora_bagit_complex_create_bag($page['pid']);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Creates a Bag for the object represented by $pid.
+ *
+ * @param string $pid
+ *   The PID of the object to create a Bag for.
+ */
+function islandora_bagit_complex_create_bag($pid) {
+  module_load_include('module', 'islandora_bagit');
+  // We keep a static cache of PIDs for Bags created
+  // to avoid an infinite loop.
+  static $bags_created = array();
+
+  if (!in_array($pid, $bags_created)) {
+    $object = islandora_object_load($pid);
+    $bags_created[] = $pid;
+    islandora_bagit_create_bag($object);
+  }
+}
+
+
+

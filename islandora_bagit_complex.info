@@ -1,0 +1,7 @@
+name = Islandora BagIt Complex
+description = Creats BagIt Bags for pages, children of compound objects.
+version = 7.x-dev
+core = 7.x
+package = Islandora Tools
+dependencies[] = libraries
+dependencies[] = islandora_bagit
