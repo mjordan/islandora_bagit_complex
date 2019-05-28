@@ -10,11 +10,6 @@
  *  The path to the Bag, relative to the Drupal installation directory.
  */
 function islandora_bagit_complex_islandora_bagit_post_create($pid, $bag_path) {
-  // module_load_include('module', 'islandora_bagit');
-  // We keep a static cache of PIDs for Bags created
-  // to avoid an infinite loop.
-  // static $bags_created = array();
-
   $parent_object = islandora_object_load($pid);
   $parent_object_models = $parent_object->models;
 
@@ -53,6 +48,15 @@ function islandora_bagit_complex_islandora_bagit_post_create($pid, $bag_path) {
       }
     }
   }
+
+  // For newspaper issues that are Bagged independent of their newspaper.
+  if (module_exists('islandora_newspaper') && in_array('islandora:newspaperIssueCModel', $parent_object_models)) {
+    module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
+    $pages = islandora_paged_content_get_pages($parent_object);
+      foreach ($pages as $page) {
+        islandora_bagit_complex_create_bag($page['pid']);
+      }
+  }
 }
 
 /**
@@ -73,6 +77,3 @@ function islandora_bagit_complex_create_bag($pid) {
     islandora_bagit_create_bag($object);
   }
 }
-
-
-
