@@ -13,6 +13,10 @@ Use with caution, since creating a Bag for a newspaper, for example, will also c
 
 Install as usual, see [this](https://drupal.org/documentation/install/modules-themes/modules-7) for further information.
 
+## Configuration
+
+When enabled, this module adds a set of checkboxes labeled "Complex objects" to Islandora BagIt's admin settings form. Select the content models for which you want descendent objects created.
+
 ## Usage
 
 This module has no user interface; instead, it changes the default behavior of the Islandora BagIt module. If enabled, when a user creates a Bag for a complex object (compound, book, or newspaper, or newspaper issue), this module will automaticall generate Bags for the object's descendents using the configuration parameters defined for the Islandora BagIt module.

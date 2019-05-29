@@ -13,49 +13,59 @@ function islandora_bagit_complex_islandora_bagit_post_create($pid, $bag_path) {
   $parent_object = islandora_object_load($pid);
   $parent_object_models = $parent_object->models;
 
+  $configured_cmodels = array_values(variable_get('islandora_bagit_complex_cmodels', array('')));
+
   // For compound objects.
-  if (module_exists('islandora_compound_object') && in_array('islandora:compoundCModel', $parent_object_models)) {
-    $child_pids = islandora_compound_object_get_parts($parent_object, FALSE);
-    foreach ($child_pids as $child_pid) {
-      islandora_bagit_complex_create_bag($child_pid);
+  if (in_array('islandora:compoundCModel', $configured_cmodels, TRUE)) {
+    if (module_exists('islandora_compound_object') && in_array('islandora:compoundCModel', $parent_object_models)) {
+      $child_pids = islandora_compound_object_get_parts($parent_object, FALSE);
+      foreach ($child_pids as $child_pid) {
+        islandora_bagit_complex_create_bag($child_pid);
+      }
     }
   }
 
   // For books.
-  if (module_exists('islandora_paged_content') && in_array('islandora:bookCModel', $parent_object_models)) {
-    module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
-    $pages = islandora_paged_content_get_pages($parent_object);
-    $child_pids = array_keys($pages);
-    foreach ($child_pids as $child_pid) {
-      islandora_bagit_complex_create_bag($child_pid);
+  if (in_array('islandora:bookCModel', $configured_cmodels, TRUE)) {
+    if (module_exists('islandora_paged_content') && in_array('islandora:bookCModel', $parent_object_models)) {
+      module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
+      $pages = islandora_paged_content_get_pages($parent_object);
+      $child_pids = array_keys($pages);
+      foreach ($child_pids as $child_pid) {
+        islandora_bagit_complex_create_bag($child_pid);
+      }
     }
   }
 
   // For newspapers.
-  if (module_exists('islandora_newspaper') && in_array('islandora:newspaperCModel', $parent_object_models)) {
-    module_load_include('inc', 'islandora_newspaper', 'includes/utilities');
-    module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
-    $issues = islandora_newspaper_get_issues($parent_object);
-    $issue_pids = array_keys($issues);
-    foreach ($issue_pids as $issue_pid) {
-      islandora_bagit_complex_create_bag($issue_pid);
-      if (module_exists('islandora_paged_content')) {
-        $issue_object = islandora_object_load($issue_pid);
-        $pages = islandora_paged_content_get_pages($issue_object);
-        foreach ($pages as $page) {
-          islandora_bagit_complex_create_bag($page['pid']);
+  if (in_array('islandora:newspaperCModel', $configured_cmodels, TRUE)) {
+    if (module_exists('islandora_newspaper') && in_array('islandora:newspaperCModel', $parent_object_models)) {
+      module_load_include('inc', 'islandora_newspaper', 'includes/utilities');
+      module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
+      $issues = islandora_newspaper_get_issues($parent_object);
+      $issue_pids = array_keys($issues);
+      foreach ($issue_pids as $issue_pid) {
+        islandora_bagit_complex_create_bag($issue_pid);
+        if (module_exists('islandora_paged_content')) {
+          $issue_object = islandora_object_load($issue_pid);
+          $pages = islandora_paged_content_get_pages($issue_object);
+          foreach ($pages as $page) {
+            islandora_bagit_complex_create_bag($page['pid']);
+          }
         }
       }
     }
   }
 
   // For newspaper issues that are Bagged independent of their newspaper.
-  if (module_exists('islandora_newspaper') && in_array('islandora:newspaperIssueCModel', $parent_object_models)) {
-    module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
-    $pages = islandora_paged_content_get_pages($parent_object);
-      foreach ($pages as $page) {
-        islandora_bagit_complex_create_bag($page['pid']);
-      }
+  if (in_array('islandora:newspaperIssueCModel', $configured_cmodels, TRUE)) {
+    if (module_exists('islandora_newspaper') && in_array('islandora:newspaperIssueCModel', $parent_object_models)) {
+      module_load_include('inc', 'islandora_paged_content', 'includes/utilities');
+      $pages = islandora_paged_content_get_pages($parent_object);
+        foreach ($pages as $page) {
+          islandora_bagit_complex_create_bag($page['pid']);
+        }
+    }
   }
 }
 
@@ -76,4 +86,23 @@ function islandora_bagit_complex_create_bag($pid) {
     $bags_created[] = $pid;
     islandora_bagit_create_bag($object);
   }
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function islandora_bagit_complex_form_islandora_bagit_admin_settings_alter(&$form, $form_state, $form_id) {
+  $options = array(
+    'islandora:compoundCModel' => 'Compound objects',
+    'islandora:bookCModel' => 'Books',
+    'islandora:newspaperCModel' => 'Newspapers',
+    'islandora:newspaperIssueCModel' => 'Newspaper issues',
+  );
+  $form['islandora_bagit_complex_cmodels'] = array(
+    '#title' => t('Complex objects'),
+    '#type' => 'checkboxes',
+    '#options' => $options,
+    '#default_value' => variable_get('islandora_bagit_complex_cmodels', array('')),
+    '#description' => t("Bags will be created for children of the selected content models."),
+  );
 }
